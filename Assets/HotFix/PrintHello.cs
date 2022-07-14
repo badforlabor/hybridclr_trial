@@ -11,7 +11,7 @@ public class PrintHello : MonoBehaviour
     void Start()
     {
         Debug.Log("这个热更新脚本挂载在prefab上，打包成ab。通过从ab中实例化prefab成功还原");
-        Debug.LogFormat("hello, HybridCLR. {0}", text);
+        Debug.LogFormat("zzz xxx hello, HybridCLR. {0}", text);
     }
 
     // Update is called once per frame

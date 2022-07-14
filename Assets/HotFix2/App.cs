@@ -28,6 +28,11 @@ public class App
         go.AddComponent<CreateByCode>();
 
         Debug.Log("=======看到此条日志代表你成功运行了示例项目的热更新代码=======");
+        
+        
+        
+        
+        Debug.Log("=======泛型测试结束=======");
         return 0;
     }
 
@@ -38,7 +43,7 @@ public class App
     {
         var arr = new List<MyValue>();
         arr.Add(new MyValue() { x = 1, y = 10, s = "abc" });
-        Debug.Log("AOT泛型补充元数据机制测试正常");
+        Debug.Log($"AOT泛型补充元数据机制测试正常, x=1=={arr[0].x}, y=10=={arr[0].y}");
     }
 
     /// <summary>
