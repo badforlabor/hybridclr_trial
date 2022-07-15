@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class LoadDll : MonoBehaviour
 {
@@ -48,5 +49,10 @@ public class LoadDll : MonoBehaviour
         //var updateMethod = appType.GetMethod("Update");
         //var updateDel = System.Delegate.CreateDelegate(typeof(Action<float>), null, updateMethod);
         //updateDel(deltaTime);
+    }
+
+    public void LoadScene2()
+    {
+        SceneManager.LoadScene("scene2");
     }
 }
