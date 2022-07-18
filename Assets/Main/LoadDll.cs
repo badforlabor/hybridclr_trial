@@ -23,6 +23,11 @@ public class LoadDll : MonoBehaviour
     {
         AssetBundle dllAB = AssemblyAssetBundle = BetterStreamingAssets.LoadAssetBundle("common");
 #if !UNITY_EDITOR
+{
+        TextAsset dllBytes3 = dllAB.LoadAsset<TextAsset>("CrazyCollects.dll.bytes");
+        gameAss = System.Reflection.Assembly.Load(dllBytes3.bytes);
+}
+
         TextAsset dllBytes1 = dllAB.LoadAsset<TextAsset>("HotFix.dll.bytes");
         System.Reflection.Assembly.Load(dllBytes1.bytes);
         TextAsset dllBytes2 = dllAB.LoadAsset<TextAsset>("HotFix2.dll.bytes");

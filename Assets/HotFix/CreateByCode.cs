@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using test_generic;
 using UnityEngine;
 
 
@@ -33,7 +34,7 @@ public class CreateByCode : MonoBehaviour
         public float B;
         public string C;
     }
-    struct SDataB
+    public struct SDataB
     {
         public int A;
         public float B;
@@ -105,20 +106,76 @@ public class CreateByCode : MonoBehaviour
         TestAOTGeneric1_1();
         TestAOTGeneric1_2();
         TestAOTGeneric1_3();
+        TestAOTGeneric1_4();
+        TestAOTGeneric1_5();
+        TestAOTGeneric1_6();
     }
+    
+    // 泛型容器，解释执行，是可以的。如果是AOT的，是不行的。
     public void TestAOTGeneric1_1()
     {
+        // 手动展开的
         try
         {
             var dict = new my_generic.PoolArray_SDataC();
             dict.Add(new SDataC() {A = 1, B = 2, C = "123"});
-            Debug.Log($"1_1 AOT泛型补充元数据机制测试正常, A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
+            Debug.Log($"1_1 PoolArray_SDataC, A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
 
         }
         catch (Exception e)
         {
             Debug.LogError(e.Message);
         }
+        
+        // 非手动展开，但是是解释执行的，也支持。
+        try
+        {
+            var dict = new my_generic.PoolArray<SDataC>();
+            dict.Add(new SDataC() {A = 1, B = 2, C = "123"});
+            Debug.Log($"1_1_1 PoolArray<SDataC>, A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+        
+        // 非AOT的系统的
+        try
+        {
+            var dict = new crazy_collects.CrazyList<SDataC>();
+            dict.Add(new SDataC() {A = 1, B = 2, C = "123"});
+            Debug.Log($"1_1_2 CrazyList<SDataC>, A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+        
+        try
+        {
+            var dict = new crazy_collects.CrazyDictionary<int, SDataC>();
+            dict.Add(0, new SDataC() {A = 1, B = 2, C = "123"});
+            Debug.Log($"1_1_3 CrazyDictionary<int, SDataC>, A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+        
+        try
+        {
+            var dict = new crazy_collects.CrazyHashSet<SDataC>();
+            dict.Add(new SDataC() {A = 1, B = 2, C = "123"});
+            var e = dict.GetEnumerator();
+            e.MoveNext();
+            Debug.Log($"1_1_4 CrazyHashSet<SDataC>, A=1=={e.Current.A}, B=2=={e.Current.B}, C='123'=={e.Current.C}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+        
     }
     public void TestAOTGeneric1_2()
     {
@@ -126,7 +183,7 @@ public class CreateByCode : MonoBehaviour
         {
             var dict = new my_generic.Dict_string_SDataC();
             dict["123"] = new SDataC() {A = 1, B = 2, C = "123"};
-            Debug.Log($"1_2 AOT泛型补充元数据机制测试正常, A=1=={dict["123"].A}, B=2=={dict["123"].B}, C='123'=={dict["123"].C}");
+            Debug.Log($"1_2 Dict_string_SDataC, A=1=={dict["123"].A}, B=2=={dict["123"].B}, C='123'=={dict["123"].C}");
 
         }
         catch (Exception e)
@@ -138,9 +195,9 @@ public class CreateByCode : MonoBehaviour
     {
         try
         {
-            var dict = new SDataC[10];
-            dict[0] = (new SDataC() {A = 1, B = 2, C = "123"});
-            Debug.Log($"1_3 AOT泛型补充元数据机制测试正常, A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
+            var dict = new SDataB[10];
+            dict[0] = (new SDataB() {A = 1, B = 2, C = "123"});
+            Debug.Log($"1_3 SDataB[10], A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
 
         }
         catch (Exception e)
@@ -148,6 +205,131 @@ public class CreateByCode : MonoBehaviour
             Debug.LogError(e.Message);
         }
     }
+
+    public void TestAOTGeneric1_4()
+    {
+        // 值类型的Delegate函数
+        
+        try
+        {
+            var dict = (new SDataB() {A = 1, B = 2, C = "123"});
+            
+            if (test_generic.StructCloneEqual<SDataB>.SetDefaultFunc == null)
+            {
+                test_generic.StructCloneEqual<SDataB>.SetDefaultFunc = SetDefaultFunc;
+            }
+            test_generic.StructCloneEqual<SDataB>.SetDefaultFunc(ref dict);
+            
+            Debug.Log($"1_4 StructCloneEqual<SDataB>.SetDefaultFunc, A=0=={dict.A}, B=2=={dict.B}, C='0000'=={dict.C}");
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+        
+        // AOT的delegate函数
+        try
+        {
+            var dict = (new SDataB() {A = 1, B = 2, C = "123"});
+
+            System.Action<SDataB> func = b =>
+            {
+                Debug.Log($"1_4_1 AOT-Delegate, A=1=={b.A}, B=2=={b.B}, C='123'=={b.C}");
+            };
+            func(dict);
+
+            System.Func<SDataB, bool> func2 = b =>
+            {
+                Debug.Log($"1_4_2 AOT-Delegate, A=1=={b.A}, B=2=={b.B}, C='123'=={b.C}");
+                return false;
+            };
+            func2(dict);
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+    }
+
+    public static void SetDefaultFunc(ref SDataB v)
+    {
+        v.A = 0;
+        v.C = "0000";
+    }
+
+    public void TestAOTGeneric1_5()
+    {
+        // 值类型的泛型函数
+        
+        try
+        {
+            var dict = (new SDataB() {A = 1, B = 2, C = "123"});
+            var dict2 = (new SDataB() {A = 11, B = 22, C = "1234"});
+            
+            test_generic.TestGenericUtils.Clone(dict2, ref dict);
+            
+            Debug.Log($"1_5 TestGenericUtils.Clone, A=11=={dict.A}, B=22=={dict.B}, C='1234'=={dict.C}");
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+    }
+    public void TestAOTGeneric1_6()
+    {
+        // 值类型的泛型类
+        try
+        {
+            var d = new StructWrapper<SDataB>();
+            d.Data.A = 1;
+            d.Data.B = 2;
+            d.Data.C = "123";
+            var dict = d.Data;
+            
+            Debug.Log($"1_6 StructWrapper<SDataB>, A=1=={dict.A}, B=2=={dict.B}, C='123'=={dict.C}");
+            d.Show();
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+        
+        // 值类型的AOT-Tuple，不支持
+#if false        
+        try
+        {
+            var dict = (new SDataB() {A = 1, B = 2, C = "123"});
+            var d = new Tuple<SDataB, int>(dict, 123);
+            
+            
+            Debug.Log($"1_6 Tuple<SDataB, int>, A=1=={d.Item1.A}, B=2=={d.Item1.B}, C='123'=={d.Item2}, hash={d.GetHashCode()}");
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+#endif
+#if false 
+        try
+        {
+            var d = new Tuple<float, int, string>(1.0f, 2, "123");
+            Debug.Log($"1_6 Tuple<float, int>, A=1=={d.Item1}, B='2'=={d.Item2}, C='123'=={d.Item3}, hash={d.GetHashCode()}");
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+#endif        
+        
+    }
+
+
     public void TestAOTGeneric2()
     {
         try
@@ -270,6 +452,46 @@ public class CreateByCode : MonoBehaviour
         }
     }
 }
+
+namespace test_generic
+{
+    public delegate void SetDefaultAction<T>(ref T src);
+    
+    public static class StructCloneEqual<T>
+    {
+        static public SetDefaultAction<T> SetDefaultFunc;
+    }
+    
+    public class TestGenericUtils
+    {
+        public static void Clone<T>(in T src, ref T dst)
+        {
+            dst = src;
+        }
+    }
+
+    public class StructWrapper<T>
+    {
+        public T Data;
+
+        public void Show()
+        {
+            Debug.Log($"I'm {typeof(T).Name}");
+
+            var t = Data.GetType();
+            var fields = t.GetFields();
+            foreach (var f in fields)
+            {
+                if (f.FieldType.IsValueType || f.FieldType == typeof(string))
+                {
+                    var v = f.GetValue(Data);
+                    Debug.Log($"    v.Type={f.FieldType.Name}, v.Value={v}");
+                }
+            }
+        }
+    }
+}
+
 namespace my_generic
 {
     public class Dict_string_SDataC

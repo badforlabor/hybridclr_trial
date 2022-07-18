@@ -24,17 +24,23 @@
 [限制和注意事项 | Focus Creative Games (focus-creative-games.github.io)](https://focus-creative-games.github.io/hybridclr/performance/limit/)
 
 - AOT泛型
-  - 对于值类型的泛型，处理的不好。
+  - 对于值类型的**泛型容器**，处理的不好。
     - 譬如，定义struct SDataC，然后使用Dictionary<string, CDataC>时，会报错“GetManaged2NativeMethodPointer. sinature:i1i88sri1 not support. System.Collections.Generic Dictionary"2:Trylnsert”
 
   - 对于引用类型，没啥问题。
     - 譬如，定义class CDataC，然后使用Dictionary<string, CDataC>时，不会报错
 
   - 值类型的数组，是支持的，譬如MyHotUpdateValueType[]
-  - 解决方案，对于值类型的，手动展开
-    - 是可以的。譬如定义struct SDataC，class Dict_string_SDataC，使用Dict_string_SDataC代替Dictionary<string, CDataC>，是可以更新的。
+  - **解决方案**，对于值类型，使用**自己定义的泛型容器**，且让此泛型容器，也是**解释执行**就可以了。
+  - 值类型的，AOT泛型delegate，支持，譬如System.Action<SDataB>
+  - 值类型的，泛型Tuple，不支持，譬如Tuple<float, int, string>，譬如Tuple<SDataB, int>
 
-- 泛型函数，是否支持？
+- 热更新dll中，泛型函数，是否支持？
+  - 泛型函数，支持。譬如 public static void Clone<T>(in T src, ref T dst)，是可以的
+
+- 热更新dll中，泛型类，是否支持？
+  - 支持。
+
 - 对于返回struct类型的async实现， 需要做上一条相似的AOT泛型处理
 - 不支持delegate的BeginInvoke, EndInvoke
 - 支持在资源中挂载热更新脚本，但需要在打包时做少量特殊处理

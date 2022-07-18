@@ -49,6 +49,7 @@ namespace HybridCLR
         {
             // 这里放除了s_monoHotUpdateDllNames以外的脚本不需要挂到资源上的dll列表
             "HotFix2.dll",
+            "CrazyCollects.dll"
         }).ToList();
 
         public static List<string> AOTMetaDlls { get; } = new List<string>()
