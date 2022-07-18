@@ -104,6 +104,7 @@ public class CreateByCode : MonoBehaviour
 
         TestAOTGeneric1_1();
         TestAOTGeneric1_2();
+        TestAOTGeneric1_3();
     }
     public void TestAOTGeneric1_1()
     {
@@ -126,6 +127,20 @@ public class CreateByCode : MonoBehaviour
             var dict = new my_generic.Dict_string_SDataC();
             dict["123"] = new SDataC() {A = 1, B = 2, C = "123"};
             Debug.Log($"1_2 AOT泛型补充元数据机制测试正常, A=1=={dict["123"].A}, B=2=={dict["123"].B}, C='123'=={dict["123"].C}");
+
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.Message);
+        }
+    }
+    public void TestAOTGeneric1_3()
+    {
+        try
+        {
+            var dict = new SDataC[10];
+            dict[0] = (new SDataC() {A = 1, B = 2, C = "123"});
+            Debug.Log($"1_3 AOT泛型补充元数据机制测试正常, A=1=={dict[0].A}, B=2=={dict[0].B}, C='123'=={dict[0].C}");
 
         }
         catch (Exception e)
@@ -257,8 +272,6 @@ public class CreateByCode : MonoBehaviour
 }
 namespace my_generic
 {
-    
-    
     public class Dict_string_SDataC
     {
         public struct KeyValuePair
