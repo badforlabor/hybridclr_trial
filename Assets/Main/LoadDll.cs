@@ -6,13 +6,53 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+public class HotDllConfig
+{
+    // 配置一次，不允许修改
+    public static List<string> hotDlls = new List<string>()
+    {
+        "CrazyCollects.dll",
+        "Google.Protobuf.dll",
+        "Test.dll",
+        // "Assembly-CSharp-firstpass.dll",
+        // "Assembly-CSharp.dll",
+    };    
+}
+
 public class LoadDll : MonoBehaviour
 {
+    private string logFilePath = "";
     void Start()
     {
+        // HOOK log
+#if UNITY_EDITOR
+        logFilePath = Path.Combine(Application.dataPath, ".." , "mylog.txt");
+#else
+        logFilePath = Path.Combine(Application.persistentDataPath, "mylog.txt");
+#endif
+        File.WriteAllText(logFilePath, $"{DateTime.Now.ToString()} start...\r\n");
+        
+        // Application.logMessageReceived += LogMessageReceived;
+        Application.logMessageReceivedThreaded += LogMessageReceived;
+        
+        
+        Debug.Log("Load Dll...");
+        
+        
+        
         BetterStreamingAssets.Initialize();
         LoadGameDll();
         RunMain();
+    }
+
+    void LogMessageReceived(string condition, string stackTrace, LogType type)
+    {
+        if (string.IsNullOrEmpty(logFilePath))
+        {
+            return;
+        }
+
+        File.AppendAllText(logFilePath, $"{DateTime.Now.ToString()} [{type.ToString()}] {condition} {stackTrace}");
     }
 
     private System.Reflection.Assembly gameAss;
@@ -23,10 +63,28 @@ public class LoadDll : MonoBehaviour
     {
         AssetBundle dllAB = AssemblyAssetBundle = BetterStreamingAssets.LoadAssetBundle("common");
 #if !UNITY_EDITOR
-{
-        TextAsset dllBytes3 = dllAB.LoadAsset<TextAsset>("CrazyCollects.dll.bytes");
-        gameAss = System.Reflection.Assembly.Load(dllBytes3.bytes);
-}
+        var hotDlls = HotDllConfig.hotDlls;
+        foreach (var hot in hotDlls)
+        {
+            if (string.IsNullOrEmpty(hot))
+            {
+                continue;
+            }
+
+            TextAsset dllContent = dllAB.LoadAsset<TextAsset>($"{hot}.bytes");
+            try { 
+                System.Reflection.Assembly.Load(dllContent.bytes);
+                Debug.Log($"Load succ. dll={hot}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Load failed. dll={hot}, err={e.Message}");
+
+                // 终止
+                // throw new Exception($"load dll failed={hot}, err={e.Message}");
+                return;
+            }    
+        }
 
         TextAsset dllBytes1 = dllAB.LoadAsset<TextAsset>("HotFix.dll.bytes");
         System.Reflection.Assembly.Load(dllBytes1.bytes);

@@ -37,10 +37,11 @@ namespace HybridCLR
         /// 注意：多热更新dll不是必须的！大多数项目完全可以只有HotFix.dll这一个热更新模块,纯粹出于演示才故意设计了两个热更新模块。
         /// 另外，是否热更新跟dll名毫无关系，凡是不打包到主工程的，都可以是热更新dll。
         /// </summary>
-        public static List<string> MonoHotUpdateDllNames { get; } = new List<string>()
+        public static List<string> MonoHotUpdateDllNames { get; } = HotDllConfig.hotDlls.Concat( new List<string>()
         {
             "HotFix.dll",
-        };
+        }).ToList();
+
 
         /// <summary>
         /// 所有热更新dll列表。放到此列表中的dll在打包时OnFilterAssemblies回调中被过滤。
@@ -49,7 +50,6 @@ namespace HybridCLR
         {
             // 这里放除了s_monoHotUpdateDllNames以外的脚本不需要挂到资源上的dll列表
             "HotFix2.dll",
-            "CrazyCollects.dll"
         }).ToList();
 
         public static List<string> AOTMetaDlls { get; } = new List<string>()

@@ -29,10 +29,17 @@ public class App
 
         Debug.Log("=======看到此条日志代表你成功运行了示例项目的热更新代码=======");
         
-        
-        
-        
         Debug.Log("=======泛型测试结束=======");
+        
+        
+        {
+            Debug.Log("=======测试protobuf，开始=======");
+            var testProto = new ProtoTestMono();
+            testProto.Test();
+            Debug.Log("=======测试protobuf，结束=======");
+        }
+        
+        
         return 0;
     }
 

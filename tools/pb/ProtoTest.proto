@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package test_proto;
+
+// 队伍标识
+enum TeamFlag {
+  TEAM_FLAG_NONE = 0;
+  TEAM_FLAG_TEAM_A = 1;       // 队伍A
+  TEAM_FLAG_TEAM_B = 2;       // 队伍B
+  TEAM_FLAG_MAX = 3;
+}
+
+
+message ResRes {
+    int32 id_key = 1;
+	string comment = 2;
+    string high_path = 3;
+    string middle_path = 4;
+    string low_path = 5;
+}
+message ResResArray {
+    repeated ResRes items = 1;
+    repeated TeamFlag teams = 2;
+	map<int32, TeamFlag> map_int32_team = 3;
+}
+
