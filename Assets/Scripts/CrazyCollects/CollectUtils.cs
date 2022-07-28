@@ -212,6 +212,16 @@ namespace crazy_collects
     {
         public enum ESr
         {
+            Serialization_InvalidOnDeser,
+            Invalid_Array_Type,
+            Arg_NonZeroLowerBound,
+            Arg_MultiRank,
+            ExternalLinkedListNode,
+            LinkedListNodeIsAttached,
+            Serialization_MissingValues,
+            LinkedListEmpty,
+            IndexOutOfRange,
+            Arg_InsufficientSpace,
             InvalidOperation_EnumOpCantHappen,
             InvalidOperation_EnumFailedVersion,
             Serialization_MissingKeys,
@@ -222,6 +232,33 @@ namespace crazy_collects
         public static string GetString(ESr v)
         {
             return "";
+        }
+        public static string GetString(ESr v, int idx)
+        {
+            return "";
+        }
+    }
+
+    public static class CrazyExtend
+    {
+        public static List<T> ToList<T>(this CrazyList<T> v)
+        {
+            return new List<T>(v.ToArray());
+        }
+
+        public static bool Remove<TKey, TValue>(
+            this CrazyDictionary<TKey, TValue> dictionary,
+            TKey key,
+            out TValue value)
+        {
+            if (dictionary.TryGetValue(key, out value))
+            {
+                dictionary.Remove(key);
+                
+                return true;
+            }
+
+            return false;
         }
     }
 }

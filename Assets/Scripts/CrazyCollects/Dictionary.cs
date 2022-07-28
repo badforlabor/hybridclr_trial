@@ -55,10 +55,55 @@ namespace crazy_collects
     using System.Runtime.Serialization;
     using System.Security.Permissions;
 
+    // [__DynamicallyInvokable]
+    [Serializable]
+    public struct CrazyKeyValuePair<TKey, TValue>
+    {
+        private TKey key;
+        private TValue value;
+
+        // [__DynamicallyInvokable]
+        public CrazyKeyValuePair(TKey key, TValue value)
+        {
+            this.key = key;
+            this.value = value;
+        }
+
+        // [__DynamicallyInvokable]
+        public TKey Key
+        {
+            // [__DynamicallyInvokable]
+            get => this.key;
+        }
+
+        // [__DynamicallyInvokable]
+        public TValue Value
+        {
+            // [__DynamicallyInvokable] 
+            get => this.value;
+        }
+
+        // [__DynamicallyInvokable]
+        public override string ToString()
+        {
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            sb.Append('[');
+            if ((object) this.Key != null)
+                sb.Append(this.Key.ToString());
+            sb.Append(", ");
+            if ((object) this.Value != null)
+                sb.Append(this.Value.ToString());
+            sb.Append(']');
+            return sb.ToString();
+        }
+    }
+    
     [DebuggerDisplay("Count = {Count}")]
     [Serializable]
     [System.Runtime.InteropServices.ComVisible(false)]
-    public class CrazyDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>, ISerializable, IDeserializationCallback
+    //public class CrazyDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>, ISerializable, IDeserializationCallback
+    public class CrazyDictionary<TKey, TValue> : ICollection<CrazyKeyValuePair<TKey, TValue>>,
+        IEnumerable<CrazyKeyValuePair<TKey, TValue>>, IDictionary, ISerializable, IDeserializationCallback
     {
         private struct Entry
         {
@@ -153,23 +198,23 @@ namespace crazy_collects
             }
         }
 
-        ICollection<TKey> IDictionary<TKey, TValue>.Keys
-        {
-            get
-            {
-                if (keys == null) keys = new KeyCollection(this);
-                return keys;
-            }
-        }
-
-        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys
-        {
-            get
-            {
-                if (keys == null) keys = new KeyCollection(this);
-                return keys;
-            }
-        }
+        // ICollection<TKey> IDictionary<TKey, TValue>.Keys
+        // {
+        //     get
+        //     {
+        //         if (keys == null) keys = new KeyCollection(this);
+        //         return keys;
+        //     }
+        // }
+        //
+        // IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys
+        // {
+        //     get
+        //     {
+        //         if (keys == null) keys = new KeyCollection(this);
+        //         return keys;
+        //     }
+        // }
 
         public ValueCollection Values
         {
@@ -181,23 +226,23 @@ namespace crazy_collects
             }
         }
 
-        ICollection<TValue> IDictionary<TKey, TValue>.Values
-        {
-            get
-            {
-                if (values == null) values = new ValueCollection(this);
-                return values;
-            }
-        }
-
-        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values
-        {
-            get
-            {
-                if (values == null) values = new ValueCollection(this);
-                return values;
-            }
-        }
+        // ICollection<TValue> IDictionary<TKey, TValue>.Values
+        // {
+        //     get
+        //     {
+        //         if (values == null) values = new ValueCollection(this);
+        //         return values;
+        //     }
+        // }
+        //
+        // IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values
+        // {
+        //     get
+        //     {
+        //         if (values == null) values = new ValueCollection(this);
+        //         return values;
+        //     }
+        // }
 
         public TValue this[TKey key]
         {
@@ -219,12 +264,12 @@ namespace crazy_collects
             Insert(key, value, true);
         }
 
-        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> keyValuePair)
+        void ICollection<CrazyKeyValuePair<TKey, TValue>>.Add(CrazyKeyValuePair<TKey, TValue> keyValuePair)
         {
             Add(keyValuePair.Key, keyValuePair.Value);
         }
 
-        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> keyValuePair)
+        bool ICollection<CrazyKeyValuePair<TKey, TValue>>.Contains(CrazyKeyValuePair<TKey, TValue> keyValuePair)
         {
             int i = FindEntry(keyValuePair.Key);
             if (i >= 0 && EqualityComparer<TValue>.Default.Equals(entries[i].value, keyValuePair.Value))
@@ -234,7 +279,7 @@ namespace crazy_collects
             return false;
         }
 
-        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> keyValuePair)
+        bool ICollection<CrazyKeyValuePair<TKey, TValue>>.Remove(CrazyKeyValuePair<TKey, TValue> keyValuePair)
         {
             int i = FindEntry(keyValuePair.Key);
             if (i >= 0 && EqualityComparer<TValue>.Default.Equals(entries[i].value, keyValuePair.Value))
@@ -283,7 +328,7 @@ namespace crazy_collects
             return false;
         }
 
-        private void CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
+        private void CopyTo(CrazyKeyValuePair<TKey, TValue>[] array, int index)
         {
             if (array == null)
             {
@@ -306,19 +351,19 @@ namespace crazy_collects
             {
                 if (entries[i].hashCode >= 0)
                 {
-                    array[index++] = new KeyValuePair<TKey, TValue>(entries[i].key, entries[i].value);
+                    array[index++] = new CrazyKeyValuePair<TKey, TValue>(entries[i].key, entries[i].value);
                 }
             }
         }
 
         public Enumerator GetEnumerator()
         {
-            return new Enumerator(this, Enumerator.KeyValuePair);
+            return new Enumerator(this, Enumerator.CrazyKeyValuePair);
         }
 
-        IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
+        IEnumerator<CrazyKeyValuePair<TKey, TValue>> IEnumerable<CrazyKeyValuePair<TKey, TValue>>.GetEnumerator()
         {
-            return new Enumerator(this, Enumerator.KeyValuePair);
+            return new Enumerator(this, Enumerator.CrazyKeyValuePair);
         }
 
         [System.Security.SecurityCritical]  // auto-generated_required
@@ -339,9 +384,9 @@ namespace crazy_collects
             info.AddValue(HashSizeName, buckets == null ? 0 : buckets.Length); //This is the length of the bucket array.
             if (buckets != null)
             {
-                KeyValuePair<TKey, TValue>[] array = new KeyValuePair<TKey, TValue>[Count];
+                CrazyKeyValuePair<TKey, TValue>[] array = new CrazyKeyValuePair<TKey, TValue>[Count];
                 CopyTo(array, 0);
-                info.AddValue(KeyValuePairsName, array, typeof(KeyValuePair<TKey, TValue>[]));
+                info.AddValue(KeyValuePairsName, array, typeof(CrazyKeyValuePair<TKey, TValue>[]));
             }
         }
 
@@ -480,8 +525,8 @@ namespace crazy_collects
                 entries = new Entry[hashsize];
                 freeList = -1;
 
-                KeyValuePair<TKey, TValue>[] array = (KeyValuePair<TKey, TValue>[])
-                    siInfo.GetValue(KeyValuePairsName, typeof(KeyValuePair<TKey, TValue>[]));
+                CrazyKeyValuePair<TKey, TValue>[] array = (CrazyKeyValuePair<TKey, TValue>[])
+                    siInfo.GetValue(KeyValuePairsName, typeof(CrazyKeyValuePair<TKey, TValue>[]));
 
                 if (array == null)
                 {
@@ -605,12 +650,12 @@ namespace crazy_collects
             return default(TValue);
         }
 
-        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly
+        bool ICollection<CrazyKeyValuePair<TKey, TValue>>.IsReadOnly
         {
             get { return false; }
         }
 
-        void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
+        void ICollection<CrazyKeyValuePair<TKey, TValue>>.CopyTo(CrazyKeyValuePair<TKey, TValue>[] array, int index)
         {
             CopyTo(array, index);
         }
@@ -642,7 +687,7 @@ namespace crazy_collects
                 ThrowHelper.ThrowArgumentException(ExceptionResource.Arg_ArrayPlusOffTooSmall);
             }
 
-            KeyValuePair<TKey, TValue>[] pairs = array as KeyValuePair<TKey, TValue>[];
+            CrazyKeyValuePair<TKey, TValue>[] pairs = array as CrazyKeyValuePair<TKey, TValue>[];
             if (pairs != null)
             {
                 CopyTo(pairs, index);
@@ -675,7 +720,7 @@ namespace crazy_collects
                     {
                         if (entries[i].hashCode >= 0)
                         {
-                            objects[index++] = new KeyValuePair<TKey, TValue>(entries[i].key, entries[i].value);
+                            objects[index++] = new CrazyKeyValuePair<TKey, TValue>(entries[i].key, entries[i].value);
                         }
                     }
                 }
@@ -688,7 +733,7 @@ namespace crazy_collects
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return new Enumerator(this, Enumerator.KeyValuePair);
+            return new Enumerator(this, Enumerator.CrazyKeyValuePair);
         }
 
         bool ICollection.IsSynchronized
@@ -829,17 +874,17 @@ namespace crazy_collects
         }
 
         [Serializable]
-        public struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>,
+        public struct Enumerator : IEnumerator<CrazyKeyValuePair<TKey, TValue>>,
             IDictionaryEnumerator
         {
             private CrazyDictionary<TKey, TValue> dictionary;
             private int version;
             private int index;
-            private KeyValuePair<TKey, TValue> current;
+            private CrazyKeyValuePair<TKey, TValue> current;
             private int getEnumeratorRetType;  // What should Enumerator.Current return?
 
             internal const int DictEntry = 1;
-            internal const int KeyValuePair = 2;
+            internal const int CrazyKeyValuePair = 2;
 
             internal Enumerator(CrazyDictionary<TKey, TValue> dictionary, int getEnumeratorRetType)
             {
@@ -847,7 +892,7 @@ namespace crazy_collects
                 version = dictionary.version;
                 index = 0;
                 this.getEnumeratorRetType = getEnumeratorRetType;
-                current = new KeyValuePair<TKey, TValue>();
+                current = new CrazyKeyValuePair<TKey, TValue>();
             }
 
             public bool MoveNext()
@@ -863,7 +908,7 @@ namespace crazy_collects
                 {
                     if (dictionary.entries[index].hashCode >= 0)
                     {
-                        current = new KeyValuePair<TKey, TValue>(dictionary.entries[index].key, dictionary.entries[index].value);
+                        current = new CrazyKeyValuePair<TKey, TValue>(dictionary.entries[index].key, dictionary.entries[index].value);
                         index++;
                         return true;
                     }
@@ -871,11 +916,11 @@ namespace crazy_collects
                 }
 
                 index = dictionary.count + 1;
-                current = new KeyValuePair<TKey, TValue>();
+                current = new CrazyKeyValuePair<TKey, TValue>();
                 return false;
             }
 
-            public KeyValuePair<TKey, TValue> Current
+            public CrazyKeyValuePair<TKey, TValue> Current
             {
                 get { return current; }
             }
@@ -899,7 +944,7 @@ namespace crazy_collects
                     }
                     else
                     {
-                        return new KeyValuePair<TKey, TValue>(current.Key, current.Value);
+                        return new CrazyKeyValuePair<TKey, TValue>(current.Key, current.Value);
                     }
                 }
             }
@@ -912,7 +957,7 @@ namespace crazy_collects
                 }
 
                 index = 0;
-                current = new KeyValuePair<TKey, TValue>();
+                current = new CrazyKeyValuePair<TKey, TValue>();
             }
 
             DictionaryEntry IDictionaryEnumerator.Entry
