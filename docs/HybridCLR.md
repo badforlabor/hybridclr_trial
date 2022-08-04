@@ -4,9 +4,8 @@
 
 ### 原理
 
-- IL2CPP的虚拟机？
-- 或者是，运行C#dll的虚拟机？应该是这个。
 - [HybridCLR技术原理剖析 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/531468413)
+- 运行C#的虚拟机，区别于ILRuntime的是，是和il2cpp混合在一起的，是没有穿透的。
 
 #### 优点
 
@@ -42,35 +41,32 @@
 - 不支持delegate的BeginInvoke, EndInvoke
 - 支持在资源中挂载热更新脚本，但需要在打包时做少量特殊处理
 - 暂不支持增量式gc
-- external函数，需要放到AOT部分。譬如xlua.so
+- **external函数，需要放到非热更部分**。譬如xlua.so
   -  [DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)]
   - 放在ExternalLib工程中。
-
-- 如果是向C++中传递C#的的delegate函数，应该放在AOT部分。
+- 如果是**向C++中传递C#的的delegate函数，应该放在非热更**部分。
   - 检查所有Marshal.GetFunctionPointerForDelegate关键字修饰的
   - 放在ExternalLib工程中。
   - 譬如xlua的回调函数CSharpWrapperCallerImpl
-
 - AOT部分，如果有静态代理函数指针，热更新部分，是无法直接赋值的，否则，会运行时崩溃。
   - 譬如，热更新部分有：public static Callback ImportType_Callback;
   - 非热更新部分，如果这样设置StaticLuaCallbacksAPI.ImportType_Callback = ImportType;
   - 执行ImportType_Callback()，会导致崩溃
-
-- 非AOT的代码，遇到了，Directory<Struct, xxx>，居然会崩溃，所以不要用结构体？
-  - 用CrazyDirectory代替，应该是可行的
-
+- 非AOT的代码，遇到了，Directory<Struct, xxx>，居然会崩溃，所有用结构体的，都需要查一下。
+  - 用CrazyDirectory代替，大部分是可行的，少量，就得加桥接函数了
 - 代码中，如果有TupleValue类型的，应该去注册下，在RefTypes.cs中。注册譬如这些：
   - new Dictionary<DefaultEnum, int>()
   - new HashSet<DefaultEnum>()
   - new ValueTuple<int, string>()
   - new List<ValueTuple<int, string>>()
-
 - Array.IndexOf<T>，也会引起异常：GetManaged2NativeMethodPointer. sinature:i4i8i16i4i4 not support.. System.Array::IndexOfImpl
 - 代理函数，会引起崩溃：ExecutionEngineException: GetManaged2NativeMethodPointer. sinature:vi4vf3i1 not support.. System.Action`3::Invoke
   - 应该是：System.Action<int, Vector3, bool>.invoke()
+- Async会引起崩溃，如何处理？编译的热更脚本，使用dev模式
+  - scriptCompilationSettings.options = ScriptCompilationOptions.DevelopmentBuild;
+- 如果所有代码，都放在AssemblyCSharp，变成解释执行，性能估计有影响。
+  - 建议，各个模块，尽量用asmdef定义，拆分dll；
 
-- Async会引起崩溃，如何处理？
-- 各个模块，尽量用asmdef定义，拆分dll；如果都放在AssemblyCSharp，变成解释执行，性能估计有影响。
 
 
 
@@ -114,7 +110,12 @@
 - 找到引擎的所有struct类型，提前做好泛型注册，譬如，只注册Dictionary和List即可。
 - 提前找到自己项目的struct，检查是否用了System.List等
 - 测试协程，是否有问题
-- 
+- 测试**内存使用**情况。
+- 优化性能，优化加减乘除。资料：
+  - [基于栈实现的虚拟机 & 基于寄存器实现虚拟机 - 简书 (jianshu.com)](https://www.jianshu.com/p/beb2de57e3c3)
+  - [【转】解释器，树遍历解释器，基于栈与基于寄存器 - DKMP - 博客园 (cnblogs.com)](https://www.cnblogs.com/budapeng/p/5537781.html)
+  - 
+
 
 
 
@@ -190,5 +191,254 @@
       at Timing.Render.MonoPlayer.SetTileDragTo (System.Int32 toTile) [0x00000] in <00000000000000000000000000000000>:0 
       at Timing.Render.MonoPlayer.SyncDragMsg (SyncDragMsg msg) [0x00000] in <0000000000000000000000000000000
 
+```
+
+
+
+
+
+## 性能测试
+
+### 环境1
+
+设备：**晓龙625**
+
+环境：北叁战旗527版本，测试一场逻辑帧执行总时间
+
+对比环境为：il2cpp和huatuo两种情况
+
+#### 情况1，207个逻辑帧
+
+observer_bin_1658995283
+
+1. huatuo，耗费2922ms，statushash=715074174965
+2. il2cpp，耗费1339ms，statushash=715074174965
+3. 结论il2cpp=2.18倍huatuo
+
+#### 情况2，1220个逻辑帧
+
+observer_bin_1659336429
+
+1. huatuo，耗费21307ms，statushash=909475774144
+2. il2cpp，耗费4556ms ，statushash=909475774144
+3. 结论il2cpp=4.67倍huatuo
+
+#### 情况3，621个逻辑帧
+
+observer_bin_1659326280
+
+1. huatuo，耗费5279ms，statushash=856709496935
+2. il2cpp，耗费 1186ms，statushash= 856709496935
+3. 结论il2cpp=4.45倍huatuo
+
+#### 情况4，415个逻辑帧
+
+observer_bin_1659335867
+
+1. huatuo，耗费1653ms，statushash=690162789156
+2. il2cpp，耗费 493ms，statushash= 690162789156
+3. 结论il2cpp=3.35倍huatuo
+
+
+
+### 环境2
+
+设备：**晓龙855（小米9）**
+
+环境：北叁战旗527版本，测试一场逻辑帧执行总时间
+
+对比环境为：il2cpp和huatuo两种情况
+
+#### 情况1，207个逻辑帧
+
+observer_bin_1658995283
+
+1. huatuo，耗费1349ms，statushash=715074174965
+2. il2cpp，耗费839ms，statushash=715074174965
+3. 结论il2cpp=1.60倍huatuo
+
+#### 情况2，1220个逻辑帧
+
+observer_bin_1659336429
+
+1. huatuo，耗费5673ms，statushash=909475774144
+2. il2cpp，耗费2711ms ，statushash=909475774144
+3. 结论il2cpp=2.09倍huatuo
+
+#### 情况3，621个逻辑帧
+
+observer_bin_1659326280
+
+1. huatuo，耗费1429ms，statushash=856709496935
+2. il2cpp，耗费 674ms，statushash= 856709496935
+3. 结论il2cpp=2.12倍huatuo
+
+#### 情况4，415个逻辑帧
+
+observer_bin_1659335867
+
+1. huatuo，耗费608ms，statushash=690162789156
+2. il2cpp，耗费 308ms，statushash= 690162789156
+3. 结论il2cpp=1.97倍huatuo
+
+
+
+### 环境3
+
+[Programming-Language-Benchmarks/bench/algorithm/spectral-norm at main · hanabi1224/Programming-Language-Benchmarks (github.com)](https://github.com/hanabi1224/Programming-Language-Benchmarks/tree/main/bench/algorithm/spectral-norm)
+
+使用**spectral-norm**算法，对比测试lua, il2cpp, c#解释执行情况
+
+-----------------------------------------------------------------------------------------
+
+huatuo.apk
+
+设备：**晓龙855（小米9）**
+
+lua testSpectral, N=2000, ret=1.274224, cost=9181ms
+
+c#  testSpectral, N=2000, ret=1.274224, cost=64549ms
+
+设备：**晓龙625**
+
+lua testSpectral, N=2000, ret=1.274224, cost=49801ms
+
+c#  testSpectral, N=2000, ret=1.274224, cost=293730ms
+
+-----------------------------------------------------------------------------------------
+
+il2cpp.apk
+
+设备：**晓龙855（小米9）**
+
+lua testSpectral, N=2000, ret=1.274224, cost=9102ms
+
+c#  testSpectral, N=2000, ret=1.274224, cost=12593ms
+
+设备：**晓龙625**
+
+lua testSpectral, N=2000, ret=1.274224, cost=49904ms
+
+c#  testSpectral, N=2000, ret=1.274224, cost=30029ms
+
+
+
+### 环境4
+
+对比测试所有基础操作，譬如加减乘除、数学运算等
+
+仅对比了huatuo和xlua。
+
+设备：**晓龙855（小米9）**
+
+总结：huatuo比xlua差最多2倍
+
+```
+N=21474836, a=1813836300.01998, b=1404737454.31521
+
+c# AddTest, c=3218573754.33519, cost=1541ms
+c# SubTest, c=409098845.70477, cost=1550ms
+c# MulTest, c=2.54796378663459E+18, cost=1472ms
+c# DivTest, c=1.29122797605208, cost=1501ms
+c# ModTest, c=409098845.70477, cost=1688ms
+c# UnmTest, c=-1813836300.01998, cost=1330ms
+c# SqrtTest, c=42589.1570710196, cost=1688ms
+c# CeilTest, c=1813836301, cost=1676ms
+c# AbsTest, c=1813836300.01998, cost=1679ms
+c# SinTest, c=0.626193018652133, cost=4376ms
+c# CosTest, c=0.779668072574047, cost=4329ms
+c# TanTest, c=0.803153342658727, cost=4745ms
+c# AcosTest, c=NaN, cost=1772ms
+c# AtanTest, c=1.57079632624358, cost=2124ms
+c# Atan2Test, c=0.911825853812368, cost=2455ms
+
+Lua AddTest, c=3218573754.33519, cost=931ms
+Lua SubTest, c=409098845.70477, cost=928ms
+Lua MulTest, c=2.54796378663459E+18, cost=930ms
+Lua DivTest, c=1.29122797605208, cost=933ms
+Lua ModTest, c=409098845.70477, cost=1128ms
+Lua UnmTest, c=-1813836300.01998, cost=895ms
+Lua SqrtTest, c=42589.1570710196, cost=1927ms
+Lua CeilTest, c=1813836301, cost=1881ms
+Lua AbsTest, c=1813836300.01998, cost=1844ms
+Lua SinTest, c=0.626193018652133, cost=4599ms
+Lua CosTest, c=0.779668072574047, cost=4538ms
+Lua TanTest, c=0.803153342658727, cost=5177ms
+Lua AcosTest, c=NaN, cost=1848ms
+Lua AtanTest, c=1.57079632624358, cost=2584ms
+Lua Atan2Test, c=0.911825853812368, cost=2678ms
+
+
+il2cpp c# AddTest, c=3218573754.33519, cost=148ms
+il2cpp c# SubTest, c=409098845.70477, cost=152ms
+il2cpp c# MulTest, c=2.54796378663459E+18, cost=146ms
+il2cpp c# DivTest, c=1.29122797605208, cost=110ms
+il2cpp c# ModTest, c=409098845.70477, cost=318ms
+il2cpp c# UnmTest, c=-1813836300.01998, cost=112ms
+il2cpp c# SqrtTest, c=42589.1570710196, cost=198ms
+il2cpp c# CeilTest, c=1813836301, cost=169ms
+il2cpp c# AbsTest, c=1813836300.01998, cost=166ms
+il2cpp c# SinTest, c=0.626193018652133, cost=2993ms
+il2cpp c# CosTest, c=0.779668072574047, cost=2937ms
+il2cpp c# TanTest, c=0.803153342658727, cost=3432ms
+il2cpp c# AcosTest, c=NaN, cost=284ms
+il2cpp c# AtanTest, c=1.57079632624358, cost=782ms
+il2cpp c# Atan2Test, c=0.911825853812368, cost=962ms
+```
+
+设备：**晓龙625**
+
+总结：huatuo比xlua差最多2.3倍
+
+```
+c# AddTest, c=3218573754.33519, cost=8542ms
+c# SubTest, c=409098845.70477, cost=8712ms
+c# MulTest, c=2.54796378663459E+18, cost=8714ms
+c# DivTest, c=1.29122797605208, cost=9011ms
+c# ModTest, c=409098845.70477, cost=9345ms
+c# UnmTest, c=-1813836300.01998, cost=7779ms
+c# SqrtTest, c=42589.1570710196, cost=9950ms
+c# CeilTest, c=1813836301, cost=9766ms
+c# AbsTest, c=1813836300.01998, cost=9768ms
+c# SinTest, c=0.626193018652133, cost=21941ms
+c# CosTest, c=0.779668072574047, cost=21878ms
+c# TanTest, c=0.803153342658727, cost=23339ms
+c# AcosTest, c=NaN, cost=10219ms
+c# AtanTest, c=1.57079632624358, cost=11941ms
+c# Atan2Test, c=0.911825853812368, cost=13742ms
+
+
+Lua AddTest, c=3218573754.33519, cost=3698ms
+Lua SubTest, c=409098845.70477, cost=3696ms
+Lua MulTest, c=2.54796378663459E+18, cost=3698ms
+Lua DivTest, c=1.29122797605208, cost=3927ms
+Lua ModTest, c=409098845.70477, cost=4727ms
+Lua UnmTest, c=-1813836300.01998, cost=3608ms
+Lua SqrtTest, c=42589.1570710196, cost=8384ms
+Lua CeilTest, c=1813836301, cost=8166ms
+Lua AbsTest, c=1813836300.01998, cost=7985ms
+Lua SinTest, c=0.626193018652133, cost=19805ms
+Lua CosTest, c=0.779668072574047, cost=19695ms
+Lua TanTest, c=0.803153342658727, cost=20882ms
+Lua AcosTest, c=NaN, cost=8006ms
+Lua AtanTest, c=1.57079632624358, cost=11687ms
+Lua Atan2Test, c=0.911825853812368, cost=11782ms
+
+
+il2cpp c# AddTest, c=3218573754.33519, cost=492ms
+il2cpp c# SubTest, c=409098845.70477, cost=484ms
+il2cpp c# MulTest, c=2.54796378663459E+18, cost=484ms
+il2cpp c# DivTest, c=1.29122797605208, cost=615ms
+il2cpp c# ModTest, c=409098845.70477, cost=1044ms
+il2cpp c# UnmTest, c=-1813836300.01998, cost=396ms
+il2cpp c# SqrtTest, c=42589.1570710196, cost=825ms
+il2cpp c# CeilTest, c=1813836301, cost=627ms
+il2cpp c# AbsTest, c=1813836300.01998, cost=627ms
+il2cpp c# SinTest, c=0.626193018652133, cost=12433ms
+il2cpp c# CosTest, c=0.779668072574047, cost=12368ms
+il2cpp c# TanTest, c=0.803153342658727, cost=14053ms
+il2cpp c# AcosTest, c=NaN, cost=990ms
+il2cpp c# AtanTest, c=1.57079632624358, cost=2573ms
+il2cpp c# Atan2Test, c=0.911825853812368, cost=3291ms
 ```
 
